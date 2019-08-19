@@ -5,10 +5,12 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Card as Card
-import Bootstrap.Navbar as Nav
+import Bootstrap.Tab as Tab
 import Platform.Cmd exposing (Cmd)
 import Platform.Sub as Sub exposing (Sub)
 import Html.Attributes as Attr
+import List
+import TimerGroup exposing (TimerGroup)
 
 -- main definition
 main =
@@ -21,15 +23,28 @@ main =
 
 -- model is currently empty
 type alias Model =
-  Nav.State
+  { tabState : Tab.State
+  , groups   : List TimerGroup
+  }
 
 -- no message types yet
-type Msg = NavUpdate Nav.State
+type Msg = TabMsg Tab.State
 
 -- init creates initial state for the navbar
 init : () -> (Model, Cmd Msg)
 init _ =
-  Nav.initialState NavUpdate
+  let
+    initialModel : Model
+    initialModel =
+      { tabState = Tab.initialState
+      , groups   = [
+          { name = "hello there joe:::48v\\sd"
+          , id = Maybe.withDefault "a" <| TimerGroup.getHtmlId "hello there joe:::48v\\sd"
+          }
+        ]
+      }
+  in
+  (initialModel, Cmd.none)
 
 -- no subscriptions currently
 subscriptions : Model -> Sub Msg
@@ -40,8 +55,15 @@ subscriptions _ =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    NavUpdate state ->
-      (state, Cmd.none)
+    TabMsg tabState ->
+      let
+        updatedTabState : Model
+        updatedTabState =
+          { model
+          | tabState = tabState
+          }
+      in
+      (updatedTabState, Cmd.none)
 
 view : Model -> Html Msg
 view model =
@@ -52,23 +74,17 @@ view model =
         []
         [ Grid.col
             []
-              [ Nav.config NavUpdate
-                  |> Nav.secondary
-                  |> Nav.items
-                      [ Nav.itemLink
-                          []
-                          [ a
-                              [ Attr.href "http://test1" ]
-                              [ text "Test 1" ]
-                          ]
-                      , Nav.itemLinkActive
-                          []
-                          [ a
-                              [ Attr.href "http://current" ]
-                              [ text "Current" ]
-                          ]
-                      ]
-                  |> Nav.view model
-              ]
+            [ Tab.config TabMsg
+                |> Tab.items (List.map createTabItem model.groups)
+                |> Tab.view model.tabState
+            ]
         ]
     ]
+
+createTabItem : TimerGroup -> Tab.Item Msg
+createTabItem timerGroup =
+  Tab.item
+    { id = timerGroup.id
+    , link = Tab.link [] [ text timerGroup.name ]
+    , pane = Tab.pane [] [ text "Timers Here" ]
+    }
